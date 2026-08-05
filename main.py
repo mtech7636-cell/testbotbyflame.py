@@ -1,4 +1,4 @@
- os
+import os
 import asyncio
 import aiohttp
 import json
@@ -49,7 +49,7 @@ from aiogram.types import (
 #  ⚙️  CONFIG
 # ═══════════════════════════════════════════
 
-BOT_TOKEN = "8735375792:AAESP5284BS4Yk9skExdbXHc8f0k5ivEt70"
+BOT_TOKEN = "8913967230:AAH8hEl9-Z46tDgaFoNNG-DmVHU-V-luEX0"
 OWNER_ID  = 7212602902
 
 RATE_LIMIT_ACTIONS = 10
