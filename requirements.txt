@@ -1,0 +1,6 @@
+aiogram
+aiohttp
+pycryptodome
+brotli
+gunicorn
+flask
