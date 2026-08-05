@@ -943,6 +943,7 @@ class CPMNuker:
     async def unlock_smoke(self, uid):
         return await self._set_floats(uid, [(33, 1.0)])
 
+    # 🚗 UNLOCK 230 CARS FIXED
     async def unlock_all_cars(self, uid):
         await self.load(uid)
         td = self.get_token_data(uid)
@@ -951,14 +952,17 @@ class CPMNuker:
         if not d or not d.get("Name"):
             return {"ok": False, "message": "Could not load account data."}
         
-        # Unlock 230 cars
-        car_data = d.get("carIDnStatus") or {}
-        car_ids = [str(x) for x in ALL_CAR_IDS]
-        car_status = [1] * len(ALL_CAR_IDS)
+        car_ids = [str(x) for x in range(0, 230)]
+        car_status = [1] * 230
+
         d["carIDnStatus"] = {
             "carGeneratedIDs": car_ids,
             "carStatus": car_status
         }
+        
+        fcar = d.get("fcar", [])
+        d["fcar"] = list(set(fcar + list(range(0, 230))))
+
         return await self._save(uid, d)
 
     async def unlock_animations(self, uid):
@@ -1035,16 +1039,16 @@ class CPMNuker:
         result = await self._save(uid,d)
         return {"ok":True,"bugs_fixed":bugs} if result.get("ok") else {"ok":False,"message":"FIX_FAILED"}
 
+    # 🔄 ACCOUNT CLONING FIXED
     async def clone_account_data(self, uid, target_email, target_password):
-        # 1. Load source data
         await self.load(uid)
         td = self.get_token_data(uid)
         source_email = td.get("email") if td else None
         source_data = deepcopy(self.get_record(uid, source_email))
+        
         if not source_data or not source_data.get("Name"):
             return {"ok": False, "message": "Source account data missing. Refresh first."}
 
-        # 2. Login to target account
         target_res = await self.login(target_email, target_password)
         if not target_res.get("ok"):
             return {"ok": False, "message": f"Target Login Failed: {target_res.get('message')}"}
@@ -1052,11 +1056,29 @@ class CPMNuker:
         target_auth = target_res.get("auth")
         target_fuid = target_res.get("firebase_uid")
 
-        # 3. Save source data onto target account
-        ok, msg = await self._send(target_auth, source_data, target_fuid)
-        if ok:
-            return {"ok": True}
-        return {"ok": False, "message": msg}
+        if not target_fuid:
+            return {"ok": False, "message": "Target Firebase UID missing."}
+
+        try:
+            payload = build_payload(source_data, target_fuid, None)
+            
+            r = await self._post(
+                SAVE_URL,
+                {"data": {"data": payload, "deviceId": target_fuid[:8]}},
+                {
+                    **GAME_HEADERS,
+                    "Authorization": f"Bearer {target_auth}",
+                    "Connection": "Keep-Alive",
+                    "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 12; Pixel 6 Build/SD1A.210817.036)"
+                }
+            )
+            
+            if r and self._ok(r):
+                return {"ok": True}
+            return {"ok": False, "message": f"SAVE_FAILED: {str(r)}"}
+            
+        except Exception as e:
+            return {"ok": False, "message": str(e)}
 
 
 nuker = CPMNuker()
@@ -2728,4 +2750,3 @@ if __name__ == "__main__":
         log.info("Stopped.")
     except Exception as e:
         log.error(f"Fatal: {e}\n{traceback.format_exc()}")
-
