@@ -2,9 +2,12 @@ import os
 import asyncio
 import logging
 import requests
+from threading import Thread
+from flask import Flask
+
 from aiogram import Bot, Dispatcher, Router, F
 from aiogram.enums import ParseMode
-from aiogram.filters import CommandStart, Command
+from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -13,13 +16,30 @@ from aiogram.types import (
 )
 
 # ═══════════════════════════════════════════
-#  ⚙️  CONFIG (ഇവിടെ വേരിയബിളുകൾ നൽകുക)
+#  🚀 FLASK KEEP-ALIVE SERVER (Render Support)
 # ═══════════════════════════════════════════
 
-# local ആയി റൺ ചെയ്യുകയാണെങ്കിൽ ഇവിടെ നൽകാം.
-# Render-ൽ കൊടുക്കുകയാണെങ്കിൽ os.environ തനിയെ എടുത്തോളും.
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "CPM 2 Bot is Alive & Running!"
+
+def run_web():
+    port = int(os.environ.get('PORT', 10000))
+    app.run(host='0.0.0.0', port=port)
+
+def keep_alive():
+    t = Thread(target=run_web)
+    t.daemon = True
+    t.start()
+
+# ═══════════════════════════════════════════
+#  ⚙️  CONFIG
+# ═══════════════════════════════════════════
+
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "8913967230:AAH8hEl9-Z46tDgaFoNNG-DmVHU-V-luEX0")
-ADMIN_ID  = int(os.environ.get("ADMIN_ID", 7212602902)) # നിങ്ങളുടെ Telegram ID
+ADMIN_ID  = int(os.environ.get("ADMIN_ID", 7212602902))
 
 API_KEY  = 'AIzaSyCQDz9rgjgmvmFkvVfmvr2-7fT4tfrzRRQ'
 BASE_URL = 'https://europe-west1-cpm-2-7cea1.cloudfunctions.net/'
@@ -120,16 +140,15 @@ def cancel_btn():
 async def cmd_start(message: Message, state: FSMContext):
     user_id = message.from_user.id
     
-    # അഡ്മിൻ മാത്രം ഉപയോഗിക്കാൻ വേണമെങ്കിൽ താഴെ കൊടുത്തിരിക്കുന്ന ചെക്ക് യൂസ് ചെയ്യാം
     if user_id != ADMIN_ID:
         await message.answer("⚠️ **Access Denied!** നിങ്ങൾക്ക് ഈ ബോട്ട് ഉപയോഗിക്കാൻ അനുവാദമില്ല.")
         return
 
     data = await state.get_data()
     if data.get("token"):
-        await message.answer("🔥 **CPM 2 TERMUX TOOL BOT** 🔥\n\nമെനുവിൽ നിന്ന് ആവശ്യമുള്ള സേവനം തിരഞ്ഞെടുക്കുക:", reply_markup=main_menu(), parse_mode=ParseMode.MARKDOWN)
+        await message.answer("🔥 **CPM 2 TOOL BOT** 🔥\n\nമെനുവിൽ നിന്ന് ആവശ്യമുള്ള സേവനം തിരഞ്ഞെടുക്കുക:", reply_markup=main_menu(), parse_mode=ParseMode.MARKDOWN)
     else:
-        await message.answer("🔥 **CPM 2 TERMUX TOOL BOT** 🔥\n\nനിങ്ങളുടെ CPM 2 **Email** അയക്കുക:")
+        await message.answer("🔥 **CPM 2 TOOL BOT** 🔥\n\nനിങ്ങളുടെ CPM 2 **Email** അയക്കുക:")
         await state.set_state(CPMState.waiting_email)
 
 @router.message(CPMState.waiting_email)
@@ -217,7 +236,7 @@ async def do_money(message: Message, state: FSMContext):
 
 @router.callback_query(F.data == "act_cancel")
 async def cancel_act(callback: CallbackQuery, state: FSMContext):
-    await callback.message.edit_text("🔥 **CPM 2 TERMUX TOOL BOT** 🔥\n\nമെനുവിൽ നിന്ന് ആവശ്യമുള്ള സേവനം തിരഞ്ഞെടുക്കുക:", reply_markup=main_menu())
+    await callback.message.edit_text("🔥 **CPM 2 TOOL BOT** 🔥\n\nമെനുവിൽ നിന്ന് ആവശ്യമുള്ള സേവനം തിരഞ്ഞെടുക്കുക:", reply_markup=main_menu())
     await callback.answer()
 
 @router.callback_query(F.data == "act_logout")
@@ -235,4 +254,5 @@ async def main():
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
+    keep_alive()
     asyncio.run(main())
