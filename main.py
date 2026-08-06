@@ -39,7 +39,7 @@ def keep_alive():
 # ═══════════════════════════════════════════
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "8913967230:AAEORwsmBmDPkjlH5FmECPZQR7DFk3ZSY_U")
-ADMIN_ID  = int(os.environ.get("ADMIN_ID", "7212602902"))
+ADMIN_ID  = int(os.environ.get("ADMIN_ID", 7212602902))
 
 API_KEY  = 'AIzaSyCQDz9rgjgmvmFkvVfmvr2-7fT4tfrzRRQ'
 BASE_URL = 'https://europe-west1-cpm-2-7cea1.cloudfunctions.net/'
