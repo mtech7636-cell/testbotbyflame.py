@@ -1,6 +1,3 @@
-aiogram
-aiohttp
-pycryptodome
-brotli
-gunicorn
-flask
+aiogram>=3.0.0
+requests>=2.25.0
+
