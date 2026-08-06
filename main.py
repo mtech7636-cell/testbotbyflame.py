@@ -38,7 +38,7 @@ def keep_alive():
 #  ⚙️  CONFIG
 # ═══════════════════════════════════════════
 
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "8913967230:AAH8hEl9-Z46tDgaFoNNG-DmVHU-V-luEX0")
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "8913967230:AAEORwsmBmDPkjlH5FmECPZQR7DFk3ZSY_U")
 ADMIN_ID  = int(os.environ.get("ADMIN_ID", 7212602902))
 
 API_KEY  = 'AIzaSyCQDz9rgjgmvmFkvVfmvr2-7fT4tfrzRRQ'
