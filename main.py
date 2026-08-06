@@ -50,7 +50,7 @@ dp  = Dispatcher(storage=MemoryStorage())
 router = Router()
 
 # ═══════════════════════════════════════════
-#  🎮 CPM 2 API LOGIC
+#  🎮 CPM 2 API LOGIC (Fixed Data Payload Wrapper)
 # ═══════════════════════════════════════════
 
 class CPM2API:
@@ -75,7 +75,13 @@ class CPM2API:
     def inject_coins(token, amount):
         url = BASE_URL + "BuyCoins21_1"
         headers = {"Authorization": f"Bearer {token}"}
-        payload = {"amount": int(amount), "version": "1.1.5", "platform": "android"}
+        payload = {
+            "data": {
+                "amount": int(amount),
+                "version": "1.1.5",
+                "platform": "android"
+            }
+        }
         try:
             r = requests.post(url, json=payload, headers=headers, timeout=15)
             return r.text
@@ -86,7 +92,13 @@ class CPM2API:
     def inject_car(token, car_id):
         url = BASE_URL + "SaveCar23_1"
         headers = {"Authorization": f"Bearer {token}"}
-        payload = {"carId": int(car_id), "action": "add", "isPremium": True}
+        payload = {
+            "data": {
+                "carId": int(car_id),
+                "action": "add",
+                "isPremium": True
+            }
+        }
         try:
             r = requests.post(url, json=payload, headers=headers, timeout=15)
             return r.text
@@ -97,7 +109,11 @@ class CPM2API:
     def inject_money(token, amount):
         url = BASE_URL + "SaveWalletData23_1"
         headers = {"Authorization": f"Bearer {token}"}
-        payload = {"money": int(amount)}
+        payload = {
+            "data": {
+                "money": int(amount)
+            }
+        }
         try:
             r = requests.post(url, json=payload, headers=headers, timeout=15)
             return r.text
