@@ -969,9 +969,9 @@ class CPMNuker:
 
     async def unlock_specific_cars(self, uid, car_ids):
         await self.load(uid)
-        td = self.get_token_data(uid)
+        td    = self.get_token_data(uid)
         email = td.get("email") if td else None
-        d = deepcopy(self.get_record(uid, email))
+        d     = deepcopy(self.get_record(uid, email))
         if not d or not d.get("Name"):
             return {"ok": False, "message": "Could not load account data."}
         
@@ -982,6 +982,7 @@ class CPMNuker:
         updated_cars = list(set(current_cars + [int(cid) for cid in car_ids]))
         d["fcar"] = updated_cars
         
+        # ഫയൽ സേവ് ചെയ്യുമ്പോൾ ഫീൽഡ് ഉറപ്പായും പോകുന്ന രീതിയിൽ സേവ് ചെയ്യുന്നു
         return await self._save(uid, d)
 
     async def complete_all_levels(self, uid):
@@ -996,25 +997,33 @@ class CPMNuker:
         
         rd = {
             "RatingData": {
-                "time": 1e22, "cars": 1e16, "car_fix": 1e13, "car_collided": 1e12,
-                "car_exchange": 1e13, "car_trade": 1e13, "car_wash": 1e13, "slicer_cut": 1e13,
-                "drift_max": 1e14, "drift": 1e14, "cargo": 1e5, "delivery": 1e5, "race_win": 3e20,
-                "taxi": 1e10, "levels": 10000990000, "gifts": 1e9, "fuel": 1e10, "offroad": 1e10,
+                "time": 10000000000, "cars": 999999, "car_fix": 999999, "car_collided": 1e12,
+                "car_exchange": 1e13, "car_trade": 1e13, "car_wash": 999999, "slicer_cut": 1e13,
+                "drift_max": 1e14, "drift": 999999, "cargo": 1e5, "delivery": 1e5, "race_win": 5000,
+                "taxi": 1e10, "levels": 999999, "gifts": 1e9, "fuel": 1e10, "offroad": 1e10,
                 "speed_banner": 1e9, "reactions": 1e17, "run": 1e9, "real_estate": 1e9,
-                "t_distance": 1e10, "treasure": 1e10, "block_post": 1e10, "push_ups": 1e12,
-                "burnt_tire": 1e10, "passanger_distance": 1e8
+                "t_distance": 1e10, "treasure": 999999, "block_post": 1e10, "push_ups": 1e12,
+                "burnt_tire": 1e10, "passanger_distance": 1e8, "police": 999999
             }
         }
         
         try:
-            r = await self._post(RANK_URL, rd, {**GAME_HEADERS, "Authorization": f"Bearer {auth}"})
+            timeout = aiohttp.ClientTimeout(total=15)
+            async with aiohttp.ClientSession(timeout=timeout, connector=aiohttp.TCPConnector(ssl=False)) as s:
+                async with s.post(RANK_URL, json={"data": json.dumps(rd)}, headers={**GAME_HEADERS, "Authorization": f"Bearer {auth}"}) as resp:
+                    text = await resp.text()
+                    try:
+                        r = json.loads(text)
+                    except:
+                        r = {"raw": text}
+                        
             if r and self._ok(r):
                 STORE["stats"]["total_unlocks"] = STORE["stats"].get("total_unlocks", 0) + 1
                 save_store(STORE)
                 return {"ok": True}
-            return {"ok": False, "message": f"RANK_FAILED: {str(r)[:100]}"}
+            return {"ok": False, "message": "RANK_FAILED"}
         except Exception as e:
-            return {"ok": False, "message": f"RANK_ERROR: {str(e)}"}
+            return {"ok": False, "message": f"RANK_ERROR: {str(e)[:40]}"}
 
     async def fix_account(self, uid):
         await self.load(uid)
@@ -1854,7 +1863,7 @@ async def cb_specific_car(cb: CallbackQuery, state: FSMContext):
     await cb.answer()
 
 
-@rt.message(SCar.ids)
+@rt.message(SCar.ids, ~F.text.startswith("/"))
 async def p_specific_car(msg: Message, state: FSMContext):
     text = msg.text.strip()
     try:
