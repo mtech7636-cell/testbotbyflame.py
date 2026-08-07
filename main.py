@@ -50,7 +50,7 @@ dp  = Dispatcher(storage=MemoryStorage())
 router = Router()
 
 # ═══════════════════════════════════════════
-#  🎮 CPM 2 API LOGIC (Fixed Data Payload Wrapper)
+#  🎮 CPM 2 API LOGIC (Fixed for In-Game Sync)
 # ═══════════════════════════════════════════
 
 class CPM2API:
@@ -84,7 +84,9 @@ class CPM2API:
         }
         try:
             r = requests.post(url, json=payload, headers=headers, timeout=15)
-            return r.text
+            if r.status_code == 200 and "result" in r.text:
+                return f"✅ **{amount} Coins Injected!**\n\n⚠️ **ശ്രദ്ധിക്കുക:** ഗെയിം റീസ്റ്റാർട്ട് ചെയ്ത് Cloud Sync നൽകുക."
+            return f"❌ Response: `{r.text}`"
         except Exception as e:
             return str(e)
 
@@ -96,12 +98,16 @@ class CPM2API:
             "data": {
                 "carId": int(car_id),
                 "action": "add",
-                "isPremium": True
+                "isPremium": True,
+                "version": "1.1.5",
+                "platform": "android"
             }
         }
         try:
             r = requests.post(url, json=payload, headers=headers, timeout=15)
-            return r.text
+            if r.status_code == 200 and "result" in r.text:
+                return f"✅ **Car ID {car_id} Successfully Unlocked!**\n\n⚠️ **ശ്രദ്ധിക്കുക:** ഗെയിം റീസ്റ്റാർട്ട് ചെയ്ത് Cloud Sync നൽകുക."
+            return f"❌ Response: `{r.text}`"
         except Exception as e:
             return str(e)
 
@@ -111,12 +117,16 @@ class CPM2API:
         headers = {"Authorization": f"Bearer {token}"}
         payload = {
             "data": {
-                "money": int(amount)
+                "money": int(amount),
+                "version": "1.1.5",
+                "platform": "android"
             }
         }
         try:
             r = requests.post(url, json=payload, headers=headers, timeout=15)
-            return r.text
+            if r.status_code == 200 and "result" in r.text:
+                return f"✅ **Money set to ${amount}!**\n\n⚠️ **ശ്രദ്ധിക്കുക:** ഗെയിം റീസ്റ്റാർട്ട് ചെയ്ത് Cloud Sync നൽകുക."
+            return f"❌ Response: `{r.text}`"
         except Exception as e:
             return str(e)
 
@@ -216,7 +226,7 @@ async def do_coins(message: Message, state: FSMContext):
     amt = message.text.strip()
     msg = await message.answer("⏳ Injecting coins...")
     resp = CPM2API.inject_coins(token, amt)
-    await msg.edit_text(f"✅ **Server Response:**\n`{resp}`", reply_markup=main_menu(), parse_mode=ParseMode.MARKDOWN)
+    await msg.edit_text(f"{resp}", reply_markup=main_menu(), parse_mode=ParseMode.MARKDOWN)
 
 @router.callback_query(F.data == "act_car")
 async def ask_car(callback: CallbackQuery, state: FSMContext):
@@ -232,7 +242,7 @@ async def do_car(message: Message, state: FSMContext):
     cid = message.text.strip()
     msg = await message.answer("⏳ Injecting car...")
     resp = CPM2API.inject_car(token, cid)
-    await msg.edit_text(f"✅ **Server Response:**\n`{resp}`", reply_markup=main_menu(), parse_mode=ParseMode.MARKDOWN)
+    await msg.edit_text(f"{resp}", reply_markup=main_menu(), parse_mode=ParseMode.MARKDOWN)
 
 @router.callback_query(F.data == "act_money")
 async def ask_money(callback: CallbackQuery, state: FSMContext):
@@ -248,7 +258,7 @@ async def do_money(message: Message, state: FSMContext):
     mny = message.text.strip()
     msg = await message.answer("⏳ Setting money...")
     resp = CPM2API.inject_money(token, mny)
-    await msg.edit_text(f"✅ **Server Response:**\n`{resp}`", reply_markup=main_menu(), parse_mode=ParseMode.MARKDOWN)
+    await msg.edit_text(f"{resp}", reply_markup=main_menu(), parse_mode=ParseMode.MARKDOWN)
 
 @router.callback_query(F.data == "act_cancel")
 async def cancel_act(callback: CallbackQuery, state: FSMContext):
