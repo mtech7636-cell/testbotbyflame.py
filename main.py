@@ -1,4 +1,4 @@
-import os
+Import os
 import asyncio
 import logging
 import requests
@@ -50,7 +50,7 @@ dp  = Dispatcher(storage=MemoryStorage())
 router = Router()
 
 # ═══════════════════════════════════════════
-#  🎮 CPM 2 API LOGIC (Fixed for In-Game Sync)
+#  🎮 CPM 2 API LOGIC (Fully Synced Version)
 # ═══════════════════════════════════════════
 
 class CPM2API:
@@ -72,11 +72,15 @@ class CPM2API:
             return {"ok": False, "msg": str(e)}
 
     @staticmethod
-    def inject_coins(token, amount):
+    def inject_coins(token, local_id, amount):
         url = BASE_URL + "BuyCoins21_1"
-        headers = {"Authorization": f"Bearer {token}"}
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
         payload = {
             "data": {
+                "accountLocalId": local_id,
                 "amount": int(amount),
                 "version": "1.1.5",
                 "platform": "android"
@@ -85,17 +89,21 @@ class CPM2API:
         try:
             r = requests.post(url, json=payload, headers=headers, timeout=15)
             if r.status_code == 200 and "result" in r.text:
-                return f"✅ **{amount} Coins Injected!**\n\n⚠️ **ശ്രദ്ധിക്കുക:** ഗെയിം റീസ്റ്റാർട്ട് ചെയ്ത് Cloud Sync നൽകുക."
+                return f"✅ **{amount} Coins Injected!**"
             return f"❌ Response: `{r.text}`"
         except Exception as e:
             return str(e)
 
     @staticmethod
-    def inject_car(token, car_id):
+    def inject_car(token, local_id, car_id):
         url = BASE_URL + "SaveCar23_1"
-        headers = {"Authorization": f"Bearer {token}"}
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
         payload = {
             "data": {
+                "accountLocalId": local_id,
                 "carId": int(car_id),
                 "action": "add",
                 "isPremium": True,
@@ -106,17 +114,21 @@ class CPM2API:
         try:
             r = requests.post(url, json=payload, headers=headers, timeout=15)
             if r.status_code == 200 and "result" in r.text:
-                return f"✅ **Car ID {car_id} Successfully Unlocked!**\n\n⚠️ **ശ്രദ്ധിക്കുക:** ഗെയിം റീസ്റ്റാർട്ട് ചെയ്ത് Cloud Sync നൽകുക."
+                return f"✅ **Car ID {car_id} Successfully Unlocked!**"
             return f"❌ Response: `{r.text}`"
         except Exception as e:
             return str(e)
 
     @staticmethod
-    def inject_money(token, amount):
+    def inject_money(token, local_id, amount):
         url = BASE_URL + "SaveWalletData23_1"
-        headers = {"Authorization": f"Bearer {token}"}
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
         payload = {
             "data": {
+                "accountLocalId": local_id,
                 "money": int(amount),
                 "version": "1.1.5",
                 "platform": "android"
@@ -125,7 +137,7 @@ class CPM2API:
         try:
             r = requests.post(url, json=payload, headers=headers, timeout=15)
             if r.status_code == 200 and "result" in r.text:
-                return f"✅ **Money set to ${amount}!**\n\n⚠️ **ശ്രദ്ധിക്കുക:** ഗെയിം റീസ്റ്റാർട്ട് ചെയ്ത് Cloud Sync നൽകുക."
+                return f"✅ **Money set to ${amount}!**"
             return f"❌ Response: `{r.text}`"
         except Exception as e:
             return str(e)
@@ -219,13 +231,15 @@ async def ask_coins(callback: CallbackQuery, state: FSMContext):
 async def do_coins(message: Message, state: FSMContext):
     data = await state.get_data()
     token = data.get("token")
-    if not token:
+    local_id = data.get("local_id")
+    
+    if not token or not local_id:
         await message.answer("⚠️ Session expired. /start ഉപയോഗിക്കുക.")
         return
 
     amt = message.text.strip()
     msg = await message.answer("⏳ Injecting coins...")
-    resp = CPM2API.inject_coins(token, amt)
+    resp = CPM2API.inject_coins(token, local_id, amt)
     await msg.edit_text(f"{resp}", reply_markup=main_menu(), parse_mode=ParseMode.MARKDOWN)
 
 @router.callback_query(F.data == "act_car")
@@ -238,10 +252,11 @@ async def ask_car(callback: CallbackQuery, state: FSMContext):
 async def do_car(message: Message, state: FSMContext):
     data = await state.get_data()
     token = data.get("token")
+    local_id = data.get("local_id")
 
     cid = message.text.strip()
     msg = await message.answer("⏳ Injecting car...")
-    resp = CPM2API.inject_car(token, cid)
+    resp = CPM2API.inject_car(token, local_id, cid)
     await msg.edit_text(f"{resp}", reply_markup=main_menu(), parse_mode=ParseMode.MARKDOWN)
 
 @router.callback_query(F.data == "act_money")
@@ -254,10 +269,11 @@ async def ask_money(callback: CallbackQuery, state: FSMContext):
 async def do_money(message: Message, state: FSMContext):
     data = await state.get_data()
     token = data.get("token")
+    local_id = data.get("local_id")
 
     mny = message.text.strip()
     msg = await message.answer("⏳ Setting money...")
-    resp = CPM2API.inject_money(token, mny)
+    resp = CPM2API.inject_money(token, local_id, mny)
     await msg.edit_text(f"{resp}", reply_markup=main_menu(), parse_mode=ParseMode.MARKDOWN)
 
 @router.callback_query(F.data == "act_cancel")
