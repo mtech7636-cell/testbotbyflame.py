@@ -967,23 +967,6 @@ class CPMNuker:
     async def unlock_houses(self, uid):
         return await self._set_integers(uid, [(8,1),(110,1),(111,1),(112,1)])
 
-    async def unlock_cars(self, uid):
-        await self.load(uid)
-        td    = self.get_token_data(uid)
-        email = td.get("email") if td else None
-        d     = deepcopy(self.get_record(uid, email))
-        if not d or not d.get("Name"):
-            return {"ok": False, "message": "Could not load account data."}
-        
-        current_cars = d.get("fcar", [])
-        if not isinstance(current_cars, list):
-            current_cars = []
-            
-        updated_cars = list(set(current_cars + list(range(1, 150))))
-        d["fcar"] = updated_cars
-        
-        return await self._save(uid, d)
-
     async def unlock_specific_cars(self, uid, car_ids):
         await self.load(uid)
         td = self.get_token_data(uid)
@@ -1007,20 +990,31 @@ class CPMNuker:
 
     async def set_rank(self, uid):
         await self.load(uid)
-        ok,msg,auth = await self.get_auth(uid)
-        if not ok: return {"ok":False,"message":msg}
-        rd = {"RatingData":{"time":1e22,"cars":1e16,"car_fix":1e13,"car_collided":1e12,
-            "car_exchange":1e13,"car_trade":1e13,"car_wash":1e13,"slicer_cut":1e13,
-            "drift_max":1e14,"drift":1e14,"cargo":1e5,"delivery":1e5,"race_win":3e20,
-            "taxi":1e10,"levels":10000990000,"gifts":1e9,"fuel":1e10,"offroad":1e10,
-            "speed_banner":1e9,"reactions":1e17,"run":1e9,"real_estate":1e9,
-            "t_distance":1e10,"treasure":1e10,"block_post":1e10,"push_ups":1e12,
-            "burnt_tire":1e10,"passanger_distance":1e8}}
-        r = await self._post(RANK_URL,{"data":json.dumps(rd)},{**GAME_HEADERS,"Authorization":f"Bearer {auth}"})
-        if r and self._ok(r):
-            STORE["stats"]["total_unlocks"]=STORE["stats"].get("total_unlocks",0)+1
-            save_store(STORE); return {"ok":True}
-        return {"ok":False,"message":"RANK_FAILED"}
+        ok, msg, auth = await self.get_auth(uid)
+        if not ok: 
+            return {"ok": False, "message": msg}
+        
+        rd = {
+            "RatingData": {
+                "time": 1e22, "cars": 1e16, "car_fix": 1e13, "car_collided": 1e12,
+                "car_exchange": 1e13, "car_trade": 1e13, "car_wash": 1e13, "slicer_cut": 1e13,
+                "drift_max": 1e14, "drift": 1e14, "cargo": 1e5, "delivery": 1e5, "race_win": 3e20,
+                "taxi": 1e10, "levels": 10000990000, "gifts": 1e9, "fuel": 1e10, "offroad": 1e10,
+                "speed_banner": 1e9, "reactions": 1e17, "run": 1e9, "real_estate": 1e9,
+                "t_distance": 1e10, "treasure": 1e10, "block_post": 1e10, "push_ups": 1e12,
+                "burnt_tire": 1e10, "passanger_distance": 1e8
+            }
+        }
+        
+        try:
+            r = await self._post(RANK_URL, rd, {**GAME_HEADERS, "Authorization": f"Bearer {auth}"})
+            if r and self._ok(r):
+                STORE["stats"]["total_unlocks"] = STORE["stats"].get("total_unlocks", 0) + 1
+                save_store(STORE)
+                return {"ok": True}
+            return {"ok": False, "message": f"RANK_FAILED: {str(r)[:100]}"}
+        except Exception as e:
+            return {"ok": False, "message": f"RANK_ERROR: {str(e)}"}
 
     async def fix_account(self, uid):
         await self.load(uid)
@@ -1275,7 +1269,7 @@ class K:
              InlineKeyboardButton(text="🏠 Houses",  callback_data="f_houses")],
             [InlineKeyboardButton(text="🎮 Levels",  callback_data="f_levels"),
              InlineKeyboardButton(text="🏅 Rank",    callback_data="f_rank")],
-            [InlineKeyboardButton(text="🚘 Cars",    callback_data="f_cars")],
+            [InlineKeyboardButton(text="🚘 Specific Cars", callback_data="menu_specific_car")],
             [InlineKeyboardButton(text="🚀 ★ UNLOCK ALL ★", callback_data="f_all")],
             [InlineKeyboardButton(text="◂ Back", callback_data="back_home")],
         ])
@@ -1409,6 +1403,9 @@ class SWins(StatesGroup):
 
 class SLoses(StatesGroup):
     val = State()
+
+class SCar(StatesGroup):
+    ids = State()
 
 class SAdmin(StatesGroup):
     ban             = State()
@@ -1817,7 +1814,6 @@ FEAT_MAP = {
     "f_houses": ("🏠 Houses",        nuker.unlock_houses),
     "f_levels": ("🎮 All Levels",    nuker.complete_all_levels),
     "f_rank":   ("🏅 Max Rank",      nuker.set_rank),
-    "f_cars":   ("🚘 Unlock Cars",   nuker.unlock_cars),
 }
 
 
@@ -1841,6 +1837,48 @@ async def cb_feat(cb: CallbackQuery):
     await result_msg(m, r.get("ok"),
         f"{fname} ✔" if r.get("ok") else f"{fname} ✗",
         "" if r.get("ok") else r.get("message",""), K.feat())
+
+
+@rt.callback_query(F.data == "menu_specific_car")
+async def cb_specific_car(cb: CallbackQuery, state: FSMContext):
+    if not nuker.get_token(cb.from_user.id): 
+        await cb.answer("✗ Sign in first!", show_alert=True)
+        return
+    await state.set_state(SCar.ids)
+    await cb.message.edit_text(
+        f"{B}\n  🚘  𝗨𝗡𝗟𝗢𝗖𝗞 𝗦𝗣𝗘𝗖𝗜𝗙𝗜𝗖 𝗖𝗔𝗥𝗦\n{B}\n\n"
+        "  Enter Car IDs separated by spaces or commas\n"
+        "  (Example: <code>12, 15, 20</code>):", 
+        reply_markup=K.cancel()
+    )
+    await cb.answer()
+
+
+@rt.message(SCar.ids)
+async def p_specific_car(msg: Message, state: FSMContext):
+    text = msg.text.strip()
+    try:
+        car_ids = [int(x) for x in re.findall(r'\d+', text)]
+        if not car_ids:
+            raise ValueError()
+    except:
+        await msg.answer("  ✗ Invalid Car IDs. Please enter valid numbers (e.g. 12, 15)", reply_markup=K.cancel())
+        return
+        
+    await state.clear()
+    ld = await msg.answer(f"  ⏳ Unlocking {len(car_ids)} cars...")
+    r = await nuker.unlock_specific_cars(msg.from_user.id, car_ids)
+    
+    if r.get("ok"):
+        STORE["stats"]["total_unlocks"] = STORE["stats"].get("total_unlocks", 0) + 1
+        save_store(STORE); update_daily_stats("unlocks")
+
+    await result_msg(
+        ld, r.get("ok"), 
+        "𝗖𝗔𝗥𝗦 𝗨𝗡𝗟𝗢𝗖𝗞𝗘𝗗" if r.get("ok") else "𝗙𝗔𝗜𝗟𝗘𝗗",
+        f"🚘 Unlocked IDs: {car_ids}" if r.get("ok") else r.get("message", ""), 
+        K.back_home()
+    )
 
 
 @rt.callback_query(F.data == "f_all")
